@@ -17,8 +17,8 @@ class Gem::Ext::RakeBuilder < Gem::Ext::Builder
       run cmd, results
     end
 
-    dest_path = if Gem.win_platform?
-      # Deal with possible spaces in the path, e.g. C:/Program Files
+    dest_path = if Gem.win_platform? # TODO: Know for sure this matches CMD only
+      # Deal with possible spaces and quotes in the path, e.g. C:/Program Files
       '"' + dest_path.to_s.gsub('"', '""') + '"'
     else
       dest_path.to_s.shellescape
