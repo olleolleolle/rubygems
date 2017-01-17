@@ -47,11 +47,34 @@ class TestGemExtRakeBuilder < Gem::TestCase
         Gem::Ext::RakeBuilder.build 'mkrf_conf.rb', nil, @dest_path, output, non_empty_args_list
       end
 
-      output = output.join "\n"
+      output = output.join("\n")
+      escaped_dest_path = @dest_path.to_s.shellescape
 
       refute_match %r%^rake failed:%, output
       assert_match %r%^#{Regexp.escape @@ruby} mkrf_conf\.rb%, output
-      assert_match %r%^#{Regexp.escape rake} RUBYARCHDIR=#{Regexp.escape @dest_path} RUBYLIBDIR=#{Regexp.escape @dest_path}%, output
+      assert_match %r%^#{Regexp.escape rake} RUBYARCHDIR=#{Regexp.escape escaped_dest_path} RUBYLIBDIR=#{Regexp.escape escaped_dest_path}%, output
+    end
+  end
+
+  # It should support shell-escaping destination paths.
+  def test_class_build_with_dest_path_with_spaces
+    @dest_path = File.join(@tempdir, 'prefix with spaces')
+    create_temp_mkrf_file('task :default')
+    output = []
+    realdir = nil # HACK /tmp vs. /private/tmp
+
+    build_rake_in do |rake|
+      Dir.chdir @ext do
+        realdir = Dir.pwd
+        Gem::Ext::RakeBuilder.build 'mkrf_conf.rb', nil, @dest_path, output
+      end
+
+      output = output.join("\n")
+      escaped_dest_path = @dest_path.to_s.shellescape
+
+      refute_match %r%^rake failed:%, output
+      assert_match %r%^#{Regexp.escape @@ruby} mkrf_conf\.rb%, output
+      assert_match %r%^#{Regexp.escape rake} RUBYARCHDIR=#{Regexp.escape escaped_dest_path} RUBYLIBDIR=#{Regexp.escape escaped_dest_path}%, output
     end
   end  
 
@@ -69,11 +92,11 @@ class TestGemExtRakeBuilder < Gem::TestCase
       assert_match %r%^rake failed%, error.message
     end
   end
-  
+
   def create_temp_mkrf_file(rakefile_content)
     File.open File.join(@ext, 'mkrf_conf.rb'), 'w' do |mkrf_conf|
       mkrf_conf.puts <<-EO_MKRF
-        File.open("Rakefile","w") do |f|
+        File.open('Rakefile', 'w') do |f|
           f.puts "#{rakefile_content}"
         end
       EO_MKRF
